@@ -48,8 +48,15 @@
 
         .current-cut-arc {
             stroke: blueviolet;
-            stroke-width: 10px;
+            stroke-width: 6px;
             fill: none;
+
+            stroke-dasharray: 6, 4;
+            /* dash, gap */
+            /* Optional:
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    */
         }
 
         .clip-rect {
@@ -460,6 +467,25 @@
              */
             toString() {
                 return `Vector(${this.x.toFixed(2)}, ${this.y.toFixed(2)})`;
+            }
+
+            /**
+             * Rotate this vector by the given angle (in degrees) around the origin (0,0).
+             * @param {number} angleInDegrees - The angle to rotate by (in degrees).
+             * @returns {Vector} A new Vector that is the result of the rotation.
+             */
+            rotate(angleInDegrees) {
+                const angleInRadians = (angleInDegrees * Math.PI) / 180;
+                const cosA = Math.cos(angleInRadians);
+                const sinA = Math.sin(angleInRadians);
+
+                // Standard 2D rotation around the origin:
+                // x' = x*cos(θ) - y*sin(θ)
+                // y' = x*sin(θ) + y*cos(θ)
+                const newX = this.x * cosA - this.y * sinA;
+                const newY = this.x * sinA + this.y * cosA;
+
+                return new Vector(newX, newY);
             }
         }
 
@@ -880,8 +906,12 @@
 
         class CutArc extends SVGElement {
             constructor(parent, klass, cut, workpieceRect) {
-                super("path", klass);
+                super("g", "");
                 this.appendTo(parent);
+
+                this.arc = new SVGElement("path", klass);
+                this.arc.appendTo(this.element);
+
                 this.breakLine = new SVGElement('path', "breakline");
                 this.breakLine.appendTo(this.element);
 
@@ -891,7 +921,6 @@
             }
 
             updatePath() {
-                // Example (full arc):
                 const startAngle = 90; // or depends on how your arcs are oriented
                 const endAngle = 90 + 90; // e.g. 90 degrees wide
                 const largeArcFlag = (endAngle - startAngle) > 180 ? 1 : 0;
@@ -899,19 +928,20 @@
                 const start = Vector.fromPolar(this.cut.radius, endAngle);
                 const end = Vector.fromPolar(this.cut.radius, startAngle);
 
+                const start_rot = start.rotate(this.cut.rotation);
+                const end_rot = end.rotate(this.cut.rotation);
+
                 this.breakLine.setAttributes({
-                    "d": `M ${start.x} -1000 L ${start.x} ${start.y}`,
-                    transform: `translate(${this.cut.center.x}, ${this.cut.center.y})`
+                    "d": `M ${start.x} -1000 L ${start_rot.x} ${start_rot.y}`
                 });
 
-                const d = `M ${start.x} ${start.y} A ${this.cut.radius} ${this.cut.radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
+                this.arc.setAttributes({
+                    "d": `M ${start_rot.x} ${start_rot.y} A ${this.cut.radius} ${this.cut.radius} 0 ${largeArcFlag} 0 ${end_rot.x} ${end_rot.y}`
+                });
 
-                // M -87 -43 L -85 -1 A 90 90 0 0 0 1 90 L 40 89 
-                // M -90 0 A 90 90 0 0 0 0 90 L 41 90 M 23 89
                 this.setAttributes({
-                    d,
-                    transform: `translate(${this.cut.center.x}, ${this.cut.center.y}) rotate(${this.cut.rotation})`
-                });
+                    transform: `translate(${this.cut.center.x}, ${this.cut.center.y}) `
+                })
             }
         }
 
@@ -1145,7 +1175,6 @@
                 this.currentCutArc = new CutArc(this.cutGroup.element, "current-cut-arc", this.currentCut, this.workpiece);
                 this.currentCut.svg_arc = this.currentCutArc;
 
-
                 this.cutterAssembly = new CutterAssembly(this.element, 120, this.currentCut);
 
                 this.addCutButton = new SVGButton(
@@ -1195,7 +1224,6 @@
             }
 
             makeArrowHeadDefs() {
-
                 // Define the arrowhead marker
                 const markerStart = document.createElementNS(svgNs, "marker");
                 markerStart.setAttribute("id", "arrow");
@@ -1274,9 +1302,9 @@
                 ExportSvg.export(this.element);
             }
 
-
             addCurrentCut() {
                 this.cuts.push(this.currentCut.clone());
+                this.currentCut.wasSaved = false;
                 this.renderCutShapes();
             }
 
@@ -1288,13 +1316,10 @@
                     // modified a saved cut, save it again
                     this.cuts.push(this.currentCut.clone());
                 }
-                else {
-                }
                 // must modify existing object because multiple hold refernce to currentCut
                 this.currentCut.center = cut.center;
                 this.currentCut.radius = cut.radius;
                 this.currentCut.rotation = cut.rotation;
-                // this.currentCut.svg_arc = cut.svg_arc;
                 this.currentCut.wasSaved = true;
                 this.cutterAssembly.moveTo(cut.center);
                 this.cutterAssembly.rotate(cut.rotation);
@@ -1304,18 +1329,12 @@
 
             // Remove old arcs and draw new ones
             renderCutShapes() {
-                // Option 1: remove old cut arcs from SVG
-                // or keep a separate `this.cutArcElements` array, etc.
-                // Then create new <path> elements for each cut.
-
-                // For illustration, we do a quick remove:
-                const existingCutArcs = this.element.querySelectorAll(".cut-arc");
+                const existingCutArcs = this.element.querySelectorAll(".cut-arc-group");
                 existingCutArcs.forEach(arc => arc.remove());
 
-                // Now re-create arcs
                 this.cuts.forEach((cut, idx) => {
                     let e = new CutArc(this.storedCuts.element, "cut-arc", cut, this.workpiece);
-                    // Attach event listeners
+                    e.element.classList.add("cut-arc-group");
                     e.element.addEventListener("click", (evt) => {
                         this.selectCut(idx);
                     });
