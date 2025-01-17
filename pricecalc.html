@@ -128,7 +128,20 @@
         >
       </div>
     </form>
+
+    <!-- SVG Visualization -->
+    <div class="col-md-12 mt-4">
+      <h2>Visualization</h2>
+      <svg id="log-visualization" width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+        <rect x="50" y="50" width="300" height="100" fill="#8B4513" stroke="black" />
+        <circle cx="50" cy="100" r="50" fill="#8B4513" stroke="black" />
+        <circle cx="350" cy="100" r="50" fill="#8B4513" stroke="black" />
+      </svg>
+    </div>
   </div>
+
+  <script src="functions.js"></script>
+
 
   <script>
     /**
@@ -144,7 +157,7 @@
     }
 
     /**
-     * Recalculate volume and total price based on current inputs.
+     * Recalculate volume, total price, and update SVG visualization.
      */
     function doCalculate() {
       const diameter = parseFloat(document.getElementById('diameter').value) || 0;
@@ -152,7 +165,6 @@
       const price    = parseFloat(document.getElementById('price').value)    || 0;
 
       // Volume in cubic meters:
-      //   volume = π * (radius^2) * length,  radius = (diameter / 2)
       const radius = diameter / 2;
       const volume = Math.PI * radius * radius * length;
 
@@ -162,6 +174,28 @@
       // Calculate total price (2 decimal places)
       const totalPrice = volume * price;
       document.getElementById('total').value = totalPrice.toFixed(2);
+
+      // Update SVG Visualization
+      const svg = document.getElementById('log-visualization');
+      const rectWidth = Math.max(10, length * 100); // Scale length
+      const rectHeight = Math.max(10, diameter * 100); // Scale diameter
+      const circleRadius = rectHeight / 2;
+
+      const rect = svg.querySelector('rect');
+      rect.setAttribute('width', rectWidth);
+      rect.setAttribute('height', rectHeight);
+      rect.setAttribute('x', 200 - rectWidth / 2);
+      rect.setAttribute('y', 100 - rectHeight / 2);
+
+      const circle1 = svg.querySelectorAll('circle')[0];
+      circle1.setAttribute('r', circleRadius);
+      circle1.setAttribute('cx', 200 - rectWidth / 2);
+      circle1.setAttribute('cy', 100);
+
+      const circle2 = svg.querySelectorAll('circle')[1];
+      circle2.setAttribute('r', circleRadius);
+      circle2.setAttribute('cx', 200 + rectWidth / 2);
+      circle2.setAttribute('cy', 100);
     }
   </script>
 </body>
