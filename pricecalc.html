@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bowlsaver digital twin - Price Calc</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+</head>
+<body>
+  <div class="container text-center mt-4">
+    <ul>
+      <li><a href="index.html">back to index</a></li>
+    </ul>
+    <h1>Wood Log Price Calculator</h1>
+
+    <form class="row justify-content-center mt-4">
+      <!-- Diameter -->
+      <div class="col-md-4 mb-3">
+        <label for="diameter" class="form-label">Diameter (m)</label>
+        <input
+          type="number"
+          class="form-control"
+          id="diameter"
+          value="0"
+          step="0.01"
+          oninput="doCalculate()"
+        >
+      </div>
+
+      <!-- Length -->
+      <div class="col-md-4 mb-3">
+        <label for="length" class="form-label">Length (m)</label>
+        <input
+          type="number"
+          class="form-control"
+          id="length"
+          value="0"
+          step="0.01"
+          oninput="doCalculate()"
+        >
+      </div>
+
+      <!-- Price with increment/decrement buttons -->
+      <div class="col-md-4 mb-3">
+        <label for="price" class="form-label">Price per cubic meter</label>
+        <div class="input-group">
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            onclick="incrementPrice(-100)"
+          >
+            -100
+          </button>
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            onclick="incrementPrice(-50)"
+          >
+            -50
+          </button>
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            onclick="incrementPrice(-10)"
+          >
+            -10
+          </button>
+
+          <input
+            type="number"
+            class="form-control"
+            id="price"
+            value="0"
+            step="1"
+            oninput="doCalculate()"
+          >
+
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            onclick="incrementPrice(10)"
+          >
+            +10
+          </button>
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            onclick="incrementPrice(50)"
+          >
+            +50
+          </button>
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            onclick="incrementPrice(100)"
+          >
+            +100
+          </button>
+        </div>
+      </div>
+
+      <!-- Calculated Volume -->
+      <div class="col-md-4 mb-3">
+        <label for="volume" class="form-label">Volume (m³)</label>
+        <input
+          type="number"
+          class="form-control"
+          id="volume"
+          value="0"
+          readonly
+        >
+      </div>
+
+      <!-- Total Price -->
+      <div class="col-md-4 mb-3">
+        <label for="total" class="form-label">Total Price</label>
+        <input
+          type="number"
+          class="form-control"
+          id="total"
+          value="0"
+          readonly
+        >
+      </div>
+    </form>
+  </div>
+
+  <script>
+    /**
+     * Increment or decrement the "price per cubic meter" field by `amount`,
+     * then recalculate totals.
+     */
+    function incrementPrice(amount) {
+      const priceInput = document.getElementById('price');
+      let currentVal = parseFloat(priceInput.value) || 0;
+      currentVal += amount;
+      priceInput.value = currentVal;
+      doCalculate();
+    }
+
+    /**
+     * Recalculate volume and total price based on current inputs.
+     */
+    function doCalculate() {
+      const diameter = parseFloat(document.getElementById('diameter').value) || 0;
+      const length   = parseFloat(document.getElementById('length').value)   || 0;
+      const price    = parseFloat(document.getElementById('price').value)    || 0;
+
+      // Volume in cubic meters:
+      //   volume = π * (radius^2) * length,  radius = (diameter / 2)
+      const radius = diameter / 2;
+      const volume = Math.PI * radius * radius * length;
+
+      // Update volume display (3 decimal places)
+      document.getElementById('volume').value = volume.toFixed(3);
+
+      // Calculate total price (2 decimal places)
+      const totalPrice = volume * price;
+      document.getElementById('total').value = totalPrice.toFixed(2);
+    }
+  </script>
+</body>
+</html>
