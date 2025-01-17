@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Bowlsaver digital twin - Price Calc</title>
+  <title>Bowlsaver Digital Twin - Price Calc</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- Bootstrap CSS -->
@@ -10,6 +10,25 @@
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css"
     rel="stylesheet"
   >
+  <style>
+    .dim-line {
+      stroke: black;
+      stroke-width: 1;
+      marker-start: url(#arrow);
+      marker-end: url(#arrow);
+    }
+
+    .dim-text {
+      fill: black;
+      font-size: 12pt;
+      text-anchor: middle;
+      alignment-baseline: central;
+    }
+
+    .dim-bg {
+      fill: yellow;
+    }
+  </style>
 </head>
 <body>
   <div class="container text-center mt-4">
@@ -133,21 +152,49 @@
     <div class="col-md-12 mt-4">
       <h2>Visualization</h2>
       <svg id="log-visualization" width="400" height="200" xmlns="http://www.w3.org/2000/svg">
-        <rect x="50" y="50" width="300" height="100" fill="#8B4513" stroke="black" />
-        <circle cx="50" cy="100" r="50" fill="#8B4513" stroke="black" />
-        <circle cx="350" cy="100" r="50" fill="#8B4513" stroke="black" />
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="5.5" orient="auto">
+            <path d="M 4 3 L 10 5 L 4 8 z" fill="black" />
+          </marker>
+        </defs>
+        <circle id="log-circle1" cx="50" cy="100" r="50" fill="#8B4513" stroke="black" />
+        <rect id="log-rect" x="50" y="50" width="300" height="100" fill="#8B4513" stroke="black" />
+        <circle id="log-circle2" cx="350" cy="100" r="50" fill="#8B4513" stroke="black" />
       </svg>
     </div>
   </div>
 
   <script src="functions.js"></script>
 
-
   <script>
-    /**
-     * Increment or decrement the "price per cubic meter" field by `amount`,
-     * then recalculate totals.
-     */
+    let lengthDim, diameterDim;
+  
+    function setupDimensions() {
+      const svg = document.getElementById('log-visualization');
+      lengthDim = new Dimension(svg);
+      diameterDim = new Dimension(svg, -20);
+    }
+  
+    function updateDimensions(diameter, length) {
+      const rect = document.getElementById('log-rect');
+      const x = parseFloat(rect.getAttribute('x'));
+      const y = parseFloat(rect.getAttribute('y'));
+      const width = parseFloat(rect.getAttribute('width'));
+      const height = parseFloat(rect.getAttribute('height'));
+  
+      // Update length dimension
+      lengthDim.update(
+        new Vector(x, y + height + 10),
+        new Vector(width, 0)
+      );
+  
+      // Update diameter dimension
+      diameterDim.update(
+        new Vector(x - 10, y + height),
+        new Vector(0, -height)
+      );
+    }
+  
     function incrementPrice(amount) {
       const priceInput = document.getElementById('price');
       let currentVal = parseFloat(priceInput.value) || 0;
@@ -155,48 +202,69 @@
       priceInput.value = currentVal;
       doCalculate();
     }
-
-    /**
-     * Recalculate volume, total price, and update SVG visualization.
-     */
+  
+    function adjustViewBox() {
+      const svg = document.getElementById('log-visualization');
+      const boundingBox = svg.getBBox(); // Get bounding box of all content in the SVG
+      const padding = 20; // Add some padding around the content
+  
+      // Set the viewBox attribute dynamically
+      svg.setAttribute(
+        'viewBox',
+        `${boundingBox.x - padding} ${boundingBox.y - padding} ${boundingBox.width + 2 * padding} ${boundingBox.height + 2 * padding}`
+      );
+    }
+  
     function doCalculate() {
       const diameter = parseFloat(document.getElementById('diameter').value) || 0;
-      const length   = parseFloat(document.getElementById('length').value)   || 0;
-      const price    = parseFloat(document.getElementById('price').value)    || 0;
-
+      const length = parseFloat(document.getElementById('length').value) || 0;
+      const price = parseFloat(document.getElementById('price').value) || 0;
+  
       // Volume in cubic meters:
       const radius = diameter / 2;
       const volume = Math.PI * radius * radius * length;
-
+  
       // Update volume display (3 decimal places)
       document.getElementById('volume').value = volume.toFixed(3);
-
+  
       // Calculate total price (2 decimal places)
       const totalPrice = volume * price;
       document.getElementById('total').value = totalPrice.toFixed(2);
-
+  
       // Update SVG Visualization
       const svg = document.getElementById('log-visualization');
+      const rect = document.getElementById('log-rect');
+      const circle1 = document.getElementById('log-circle1');
+      const circle2 = document.getElementById('log-circle2');
+  
       const rectWidth = Math.max(10, length * 100); // Scale length
       const rectHeight = Math.max(10, diameter * 100); // Scale diameter
       const circleRadius = rectHeight / 2;
 
-      const rect = svg.querySelector('rect');
+      circle1.setAttribute('r', circleRadius);
+      circle1.setAttribute('cx', 200 - rectWidth / 2);
+      circle1.setAttribute('cy', 100);
+      
       rect.setAttribute('width', rectWidth);
       rect.setAttribute('height', rectHeight);
       rect.setAttribute('x', 200 - rectWidth / 2);
       rect.setAttribute('y', 100 - rectHeight / 2);
-
-      const circle1 = svg.querySelectorAll('circle')[0];
-      circle1.setAttribute('r', circleRadius);
-      circle1.setAttribute('cx', 200 - rectWidth / 2);
-      circle1.setAttribute('cy', 100);
-
-      const circle2 = svg.querySelectorAll('circle')[1];
+  
       circle2.setAttribute('r', circleRadius);
       circle2.setAttribute('cx', 200 + rectWidth / 2);
       circle2.setAttribute('cy', 100);
+  
+      // Update dimensions
+      updateDimensions(diameter, length);
+  
+      // Adjust the SVG viewBox
+      adjustViewBox();
     }
+  
+    document.addEventListener('DOMContentLoaded', () => {
+      setupDimensions();
+      doCalculate();
+    });
   </script>
 </body>
 </html>
